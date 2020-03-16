@@ -1,0 +1,751 @@
+﻿<html>
+	<head>
+		<title>Maze solving algorithm</title>
+		<script>
+			"use strict";
+			
+			/*The amount of time the animation takes for each step (in miliseconds)*/
+			var waitTime = 1000;
+			
+			/*The container div to which everything is added*/
+			var container = null;
+			
+			/*The beginning and end tile*/
+			var startTile = null;
+			var endTile = null;
+			
+			/*An array containing all of the tiles*/
+			var tiles = [];
+			/*How deep is tiles*/
+			var dimensions = 2;
+			var size = [];
+			
+			/*This is true when the animation is playing, so the user can't drag tiles during that time*/			
+			var isSolving = false;
+			
+			/*The algorithm used to generate the maze*/
+			var mazeType = 0;
+			
+			function loadContainer()
+			{
+				container = document.getElementById("container");
+				reloadMaze([20, 20]);
+			}
+			
+			function reloadMaze(mazesize)
+			{
+				size = mazesize;
+				dimensions = size.length;
+				tiles = [];
+				container.innerHTML = "";
+				for (var x = 0; x < size[0]; x++)
+				{
+					var column = [];
+					for (var y = 0; y < size[1]; y++)
+						column.push(0);
+					tiles.push(column);
+				}
+				
+				for (var x = 0; x < size[0]; x++)
+					for (var y = 0; y < size[1]; y++)
+						tiles[x][y] = new LocationTile([x, y]);
+				
+				startTile = tiles[0][0];
+				endTile = tiles[size[0] - 1][size[1] - 1];
+				
+				for (var x = 0; x < size[0]; x++)
+					for (var y = 0; y < size[1]; y++)
+						tiles[x][y].updateNeighbours();
+				
+				window.onresize("");
+			}
+			
+			var LocationTile = function LocationTile(dimension)
+			{
+				this.tileElement = document.createElement("div");
+				this.tileElement.className = "tile";
+				this.tileElement.style.left = dimension[0] * 40 + "px";
+				this.tileElement.style.top = dimension[1] * 40 + "px";
+				this.tileElement.dimension = dimension;
+				this.dimension = dimension;
+				this.neighbours = [];
+				this.isVisited = false;
+				var dis = this;
+				this.getNeighbour = function(tile)
+				{
+					for (var x = 0; x < dis.neighbours.length; x++)
+						if (dis.neighbours[x].getOpposite(dis) == tile)
+							return dis.neighbours[x];
+					return null;
+				}
+				this.addNeighbour = function(tile)
+				{
+					dis.neighbours.push(tile);
+				}
+				this.updateNeighbours = function()
+				{
+					dis.tileElement.setAttribute("dimension00", "yes");
+					dis.tileElement.setAttribute("dimension01", "yes");
+					dis.tileElement.setAttribute("dimension10", "yes");
+					dis.tileElement.setAttribute("dimension11", "yes");
+					
+					if (endTile == dis)
+						dis.tileElement.setAttribute("dimension01", "no");
+					if (startTile == dis)
+						dis.tileElement.setAttribute("dimension10", "no");
+					
+					for (var x = 0; x < dis.neighbours.length; x++)
+					{
+						if (dis.neighbours[x].isConnected)
+						{
+							dis.tileElement.setAttribute("dimension" + dis.neighbours[x].dimension + dis.neighbours[x].getNumber(dis), "no");
+						} else
+						{
+							dis.tileElement.setAttribute("dimension" + dis.neighbours[x].dimension + dis.neighbours[x].getNumber(dis), "yes");
+						}
+					}
+				}
+				container.appendChild(this.tileElement);
+				for (var x = 0; x < dimensions; x++)
+				{
+					var minus = tiles;
+					for (var i = 0; i < dimensions; i++)
+					{
+						if (minus == 0)
+							break;
+						if (i == x)
+						{
+							if (dimension[i] == 0)
+								minus = 0;
+							else
+								minus = minus[dimension[i] - 1];
+						} else
+							minus = minus[dimension[i]];
+					}
+					if (minus != 0)
+					{
+						var neighbour = new NeighbouringTiles(minus, this, x);
+						dis.addNeighbour(neighbour);
+						minus.addNeighbour(neighbour);
+					}
+					var plus = tiles;
+					for (var i = 0; i < dimensions; i++)
+					{
+						if (plus == 0)
+							break;
+						if (i == x)
+						{
+							if (dimension[i] + 1 >= size[i])
+								plus = 0;
+							else
+								plus = plus[dimension[i] + 1];
+						} else
+							plus = plus[dimension[i]];
+					}
+					if (plus != 0)
+					{
+						var neighbour = new NeighbouringTiles(this, plus, x);
+						dis.addNeighbour(neighbour);
+						plus.addNeighbour(neighbour);
+					}
+				}
+			}
+			
+			var NeighbouringTiles = function(t1, t2, dimension)
+			{
+				this.tile1 = t1;
+				this.tile2 = t2;
+				this.dimension = dimension;
+				this.isConnected = true;
+				this.visited = false;
+				
+				var dis = this;
+				
+				this.getOpposite = function(tile)
+				{
+					if (dis.tile1 == tile)
+						return dis.tile2;
+					return dis.tile1;
+				}
+				
+				this.getNumber = function(tile)
+				{
+					if (dis.tile1.dimension == tile.dimension)
+						return "1";
+					else
+						return "0";
+				}
+				
+				this.removeWall = function()
+				{
+					dis.isConnected = true;
+				}
+				
+				this.addWall = function()
+				{
+					dis.isConnected = false;
+				}
+			}
+			
+			function generateMaze()
+			{
+				tilestack = [endTile];
+				lasttile = endTile;
+				for (var x = 0; x < size[0]; x++)
+					for (var y = 0; y < size[1]; y++)
+					{
+						tiles[x][y].isVisited = false;
+						tiles[x][y].tileElement.setAttribute("currentTile", "nein");
+						for (var z = 0; z < tiles[x][y].neighbours.length; z++)
+							if (mazeType == 0) tiles[x][y].neighbours[z].removeWall();
+							else tiles[x][y].neighbours[z].removeWall();
+						tiles[x][y].updateNeighbours();
+						for (var z = 0; z < tiles[x][y].neighbours.length; z++)
+							if (mazeType == 0) tiles[x][y].neighbours[z].addWall();
+					}
+				if (mazeType == 0)
+					generateRecursiveMaze();
+				else
+					generateSubdividedMaze();
+			}
+			
+			var tilestack = [];
+			
+			var lasttile;
+			
+			function generateRecursiveMaze()
+			{
+				function tick()
+				{
+					if (tilestack.length == 0)
+					{
+						lasttile.tileElement.setAttribute("currentTile", "waz");
+						document.getElementById("solvemaze").innerHTML = "Generate another maze";
+						isSolving = false;
+					}
+					if (!isSolving) return;
+					var tile = tilestack.pop();
+					lasttile.tileElement.setAttribute("currentTile", "waz");
+					lasttile.updateNeighbours();
+					tile.updateNeighbours();
+					lasttile = tile;
+					tilestack.push(tile);
+					tile.tileElement.setAttribute("currentTile", "yes");
+					if (!tile.isVisited)
+					{
+						tile.neighbours2 = [];
+						
+						for (var x = 0; x < tile.neighbours.length; x++)
+							tile.neighbours2.push(tile.neighbours[x]);
+						tile.isVisited = true;
+					}
+					
+					if (tile.neighbours2.length == 0)
+					{
+						tilestack.pop();
+						setTimeout(tick, 50);
+						return;
+					}
+					
+					var didsomething = false;
+					
+					while (!didsomething)
+					{
+						if (tile.neighbours2.length == 0)
+						{
+							tick();
+							return;
+						}
+						var selected = tile.neighbours2[Math.floor(Math.random() * tile.neighbours2.length)];
+						tile.neighbours2.splice(tile.neighbours2.indexOf(selected), 1);
+						if (!selected.getOpposite(tile).isVisited)
+						{
+							selected.removeWall();
+							tilestack.push(selected.getOpposite(tile));
+							didsomething = true;
+						}
+					}
+					setTimeout(tick, 50);
+				}
+				tick();
+			}
+			
+			function subdivisionObject(divisionsize, location, dimension, subdivide)
+			{
+				return function()
+				{
+					subdivide(divisionsize, location, dimension);
+				}
+			}
+			
+			function generateSubdividedMaze()
+			{
+				var subdstack = [];
+				var subdivide = function subdivide(divisionsize, location, dimension)
+				{
+					dimension %= divisionsize.length;
+					if (divisionsize[dimension] < 2)
+						return;
+					var midpoint = Math.floor(Math.random() * (divisionsize[dimension] - 1)) + 1;
+					var mid2 = midpoint + location[dimension] - 1;
+					var randhole = [];
+					for (var x = 0; x < divisionsize.length; x++)
+					{
+						if (x == dimension)
+							randhole[x] = mid2;
+						else
+							randhole[x] = Math.floor(Math.random() * (divisionsize[x] - 1)) + location[x];
+					}
+					randhole = getTile(randhole);
+					var walls = function walls(dimension, currentdimension, locat)
+					{
+						var loc = [];
+						for (var x = 0; x < locat.length; x++)
+							if (x == dimension) loc[x] = mid2;
+							else loc[x] = locat[x];
+						if (currentdimension == divisionsize.length)
+						{
+							var tile = getTile(loc);
+							if (tile == randhole)
+								return;
+							for (var x = 0; x < tile.neighbours.length; x++)
+								if (tile.neighbours[x].getOpposite(tile).dimension[dimension] > tile.dimension[dimension])
+								{
+									tile.neighbours[x].addWall();
+									break;
+								}
+						} else if (dimension == currentdimension)
+							walls(dimension, currentdimension + 1, loc);
+						else
+							for (; loc[currentdimension] < locat[currentdimension] + divisionsize[currentdimension]; loc[currentdimension]++)
+								walls(dimension, currentdimension + 1, loc);
+					}
+					walls(dimension, 0, location);
+					
+					var newsize1 = [];
+					var newsize2 = [];
+					var newloc2 = [];
+					
+					for (var x = 0; x < divisionsize.length; x++)
+					{
+						if (x == dimension)
+						{
+							newsize1[x] = midpoint;
+							newsize2[x] = divisionsize[x] - midpoint;
+							newloc2[x] = location[x] + midpoint;
+						} else
+						{
+							newsize1[x] = divisionsize[x];
+							newsize2[x] = divisionsize[x];
+							newloc2[x] = location[x];
+						}
+					}
+					subdstack.push(subdivisionObject(newsize2, newloc2, dimension + 1, subdivide));
+					subdstack.push(subdivisionObject(newsize1, location, dimension + 1, subdivide));
+				}
+				var loc = [];
+				for (var x = 0; x < size.length; x++)
+					loc[x] = 0;
+				subdivide(size, loc, 0);
+				function cont()
+				{
+					if (subdstack.length > 0 && isSolving)
+					{
+						subdstack.pop()();
+						for (var x = 0; x < size[0]; x++)
+							for (var y = 0; y < size[1]; y++)
+								tiles[x][y].updateNeighbours();
+						setTimeout(cont, 50);
+					} else
+					{
+						document.getElementById("solvemaze").innerHTML = "Generate another maze";
+						isSolving = false;
+					}
+				}
+				setTimeout(cont, 50);
+			}
+			
+			function gen(type)
+			{
+				mazeType = type;
+			}
+			
+			function getTile(loc)
+			{
+				var tile = tiles;
+				for (var x = 0; x < loc.length; x++)
+					tile = tile[loc[x]];
+				return tile;
+			}
+			
+			function solveMaze()
+			{
+				if (isSolving)
+				{
+					isSolving = false;
+					document.getElementById("solvemaze").innerHTML = "Generate another maze";
+					return;
+				}
+				isSolving = true;
+				document.getElementById("solvemaze").innerHTML = "Stop generation";
+				generateMaze();
+			}
+			
+			function changedimensions()
+			{
+				var dimensions = document.getElementById("dimensions");
+				var sizeElement = document.getElementById("size");
+				var inputs = document.getElementsByClassName("sizeinput");
+				
+				if (inputs.length > dimensions.value)
+				{
+					for (var x = 0; x < inputs.length; x++)
+						if (parseInt(inputs[x].id.substring(1)) >= dimensions.value)
+							inputs[x].parentNode.removeChild(inputs[x]);
+				} else if (inputs.length < dimensions.value)
+				{
+					for (var x = inputs.length; x < dimensions.value; x++)
+					{
+						var child = document.createElement("input");
+						child.className = 'sizeinput';
+						child.id = "d" + x;
+						child.type = "number";
+						child.value = 2;
+						child.min = 2;
+						sizeElement.appendChild(child);
+					}
+				}
+			}
+			
+			function updateDimensions()
+			{
+				if (isSolving) return;
+				//var dimensions = document.getElementById("dimensions");
+				var dimensions = {value: 2};
+				
+				var newsize = [];
+				for (var x = 0; x < dimensions.value; x++)
+				{
+					var el = document.getElementById("d" + x);
+					newsize.push(el.value < 2 ? 2 : el.value);
+				}
+				
+				reloadMaze(newsize);
+			}
+			
+			window.onresize = function(e)
+			{
+				var x = document.getElementsByClassName("tile");
+				var size = Math.min(window.innerWidth / tiles.length, window.innerHeight / tiles[0].length);
+				for (var i = 0; i < x.length; i++)
+				{
+					if (x[i].dimension == undefined)
+						continue;
+					x[i].style.width = size - 2 + "px";
+					x[i].style.height = size - 2 + "px";
+					x[i].style.left = x[i].dimension[0] * (size) + "px";
+					x[i].style.top = x[i].dimension[1] * (size) + "px";
+				}
+			}
+			
+			document.onselectstart = function(){ return false; }
+		</script>
+		<style>
+			body
+			{
+				background-color: black;
+				overflow: hidden;
+				margin: 0;
+				border: 0;
+				padding: 0;
+			}
+			#container
+			{
+				overflow: hidden;
+			}
+			.tile
+			{
+				position: absolute;
+				width: 36px;
+				height: 36px;
+				transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
+				border: solid 2px transparent;
+			}
+			.tile[currentTile="yes"]
+			{
+				background-color: yellow;
+			}
+			.tile[currentTile="waz"]
+			{
+				background-color: gray;
+			}
+			.tile[dimension00="yes"]
+			{
+				border-left: solid 2px white;
+			}
+			.tile[dimension01="yes"]
+			{
+				border-right: solid 2px white;
+			}
+			.tile[dimension10="yes"]
+			{
+				border-top: solid 2px white;
+			}
+			.tile[dimension11="yes"]
+			{
+				border-bottom: solid 2px white;
+			}
+			.bottombar
+			{
+				position: absolute;
+				right: 5px;
+				bottom: 5px;
+				z-index: 49;
+			}
+			.tophelp
+			{
+				position: absolute;
+				right: 5px;
+				top: 5px;
+				width: 34px;
+				height: 34px;
+				text-align: center;
+				cursor: pointer;
+				background-image: -webkit-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -moz-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -ms-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -o-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				border: transparent 1px;
+				border-top: solid 1px rgb(160, 160, 255);
+				border-bottom: solid 1px rgb(60, 60, 127);
+				border-radius: 10px;
+				box-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+				color: white;
+				font-weight: bold;
+				text-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+				font-size: 20px;
+			}
+			.tophelp:hover
+			{
+				background-image: -webkit-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -moz-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -ms-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -o-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				border-top: solid 1px rgb(180, 180, 255);
+				border-bottom: solid 1px rgb(90, 90, 127);
+			}
+			.tophelp:active
+			{
+				background-image: -webkit-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -moz-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -ms-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -o-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				border-top: solid 1px rgb(130, 130, 222);
+				border-bottom: solid 1px rgb(30, 30, 63);
+			}
+			.innerimage
+			{
+				width: 34px;
+				height: 34px;
+				background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAiCAYAAAA6RwvCAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuNWWFMmUAAAOxSURBVFhHzZfLTxpRFIeR8Fi2ibsmPJZNQ9KQNl25cdFH4H+QdeumsWnc1UVrI7ahBTZVkRBqiKAYVwKbJi7sY9mKjQqhjYnGJljBhFYCePs7w2XKODAzRkz7JV9m5tx7zzkozr3qGGP/hR2DGr0C38Hv8Bu/t8JOc1XtGNToS3gaL+w0V9W/N2fk8PDwLdZJKBaLMT6sGSxTbgSxPvgATsEbPCyyurq6gbiEtbW1DT4sgrATzsL7sI+HRRBr1hdv2qAF8DVsUYF34GX4CH6BMk5OTuiShSPwErwNaW0LyilpBs+KjTyEp/kNfzZvNVGEtOY0I7yMAJ4VG5mHF8UCLyOA5+6NjI6OvqnVagj3FsqJ3NO8jADC3RsB80NDQ6zRaGCoN9TrdebxeKiQ9p8IuNvf3187OjrCUG+gXJQTue81SzTBkGIjupWVlUXEe0o6nU7y9CIId28Ez334fdJrW5FCocD8fj8LBALCvRrISduB8p8vtMAx+ALSS0yRSCTCTCYTfQJBs9nMotEoH1VkGlKNJ5D2K1kjn6Amtra2mNFopAYK0A8DdE/NbG9v81ma+AiljeBbXcJVExMTE9REBJpgCzOMjo+P81nqoGYZF2kjpVJJ84vD5/MdoKhRKC/FPDk5ecCnqVIul+u4SBtZX1+noCZ2dnb2cdHz4iIU42Oa2NzclDficDhK4XCYxeNxlkqlEFLlORSbwT1tlM9oQIlMJsMSiQQLhULM6XTSi0raCPhM+Ui9Xs92d3cRVuUDfMx9TwEl9vb2hNytOvArwrJGrsEwjMMUfSF7Df+SZ2AChuB1hGWNtKO3Wq37x8fHGOoNlUqFWSyWH5S7WaIJhhQb0Q0PD8d72Qjlopw8vQiGujeC55vYeTsdas4Fcv7C5RYvI4BnxUYS8KKY52UE8Ny9EbxTZHsNnSeq1Sp/UofmdjrPZLPZWV5GAKHujWAfWQAIN6GTFR1q7HY7CwaD9G8DH5FDY7Qb22w2YQ19gBbJZJI2Ssn3BOHujYAxg8HAvF4vnSGY2+2mCXVYhcKGt7S0hGVSlpeXW5shSXMbLpdLyEG5KCdiT6EIlik2YoB0pGslpZOVB9phEBanpuQnhZmZGZpbhLQb2yCtoQ/QykMHI8otgmWKjRC0wAvT0E2BNoyxWCyHdRLm5ubyNNacIuKClINySZogsEy1EUUGBgbi+XyeYdcWzOVybHBwcJEPa+bcjYBXkBa264NnoheNXIX0qyhxc9ABz4SskX8r0/0BLGqjEkPqg2kAAAAASUVORK5CYII=');
+			}
+
+			.right
+			{
+				position: absolute;
+				right: 10px;
+			}
+			.tileAction
+			{
+				z-index:49;
+				cursor: pointer;
+				background-image: -webkit-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -moz-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -ms-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: -o-linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				background-image: linear-gradient(top, rgb(127, 127, 255), rgb(95, 95, 191));
+				padding: 10px 20px;
+				border: transparent 1px;
+				border-top: solid 1px rgb(160, 160, 255);
+				border-bottom: solid 1px rgb(60, 60, 127);
+				border-radius: 10px;
+				box-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+				color: white;
+				-webkit-transition: background-image 0.25s ease-in-out;
+				-moz-transition: background-image 0.25s ease-in-out;
+				-ms-transition: background-image 0.25s ease-in-out;
+				-o-transition: background-image 0.25s ease-in-out;
+				transition: background-image 0.25s ease-in-out;
+			}
+			.tileAction:focus
+			{
+				outline: none;
+			}
+			.tileAction:hover
+			{
+				background-image: -webkit-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -moz-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -ms-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: -o-linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				background-image: linear-gradient(top, rgb(159, 159, 255), rgb(127, 127, 191));
+				border-top: solid 1px rgb(180, 180, 255);
+				border-bottom: solid 1px rgb(90, 90, 127);
+			}
+			.tileAction:active
+			{
+				background-image: -webkit-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -moz-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -ms-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: -o-linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				background-image: linear-gradient(top, rgb(100, 100, 200), rgb(70, 70, 140));
+				border-top: solid 1px rgb(130, 130, 222);
+				border-bottom: solid 1px rgb(30, 30, 63);
+			}
+			.tablehelp
+			{
+				display:table;
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+			}
+			.helpabs
+			{
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+				z-index: 9001;
+			}
+			.helpcont
+			{
+				width: 100%;
+				height: 100%;
+				display: table-cell;
+				vertical-align: middle;
+			}
+			.helpmenu
+			{
+				background-color: rgba(127, 127, 255, 0.7);
+				color: white;
+				font-family: sans-serif;
+				font-weight: bold;
+				border-radius: 10px;
+				width: 800px;
+				margin: auto;
+				padding: 5px;
+				text-shadow: 0 0 1px rgba(0, 0, 0, 0.7);
+				border: solid 1px rgba(0, 0, 0, 0.1);
+				box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+			}
+			.td1
+			{
+				padding-left: 5px;
+				width: 25px;
+				height: 20px;
+				text-align: center;
+				vertical-align: center;
+			}
+			td
+			{
+				color: white;
+				font-family: sans-serif;
+				font-weight: bold;
+				cursor: default;
+			}
+			.helptext
+			{
+				padding: 10px;
+				line-height: 30px;
+				text-shadow: 0 0 2px black;
+				cursor: default;
+			}
+			.helpdiv
+			{
+				border: solid 1px rgb(127, 127, 255);
+				border-radius: 5px;
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+				margin-bottom: 20px;
+			}
+			.title
+			{
+				position: relative;
+				margin-top: -23px;
+				border: solid 1px rgb(127, 127, 255);
+				background-color: rgb(89, 89, 179);
+				border-radius: 5px;
+				padding: 1px 5px;
+				line-height: 20px;
+				display: inline-block;
+				text-shadow: none;
+			}
+			.closehelp
+			{
+				text-align: right;
+				cursor: pointer;
+				font-weight: normal;
+				text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+				color: white;
+				padding: 5px;
+				text-decoration: underline;
+			}
+			h1
+			{
+				font-size: 30px;
+				margin: 10px;
+				padding: 0px;
+			}
+		</style>
+	</head>
+	
+	<body onload='loadContainer()'>
+		<div id='container'></div>
+		<div class='tophelp' onclick='document.getElementById("settings").style.display = "table"'><div class='innerimage'></div></div>
+		<div class='bottombar'>
+			<button id='solvemaze' class='tileAction' onclick='solveMaze()'>Generate a maze</button>
+		</div>
+		<div class='helpabs' id='settings'>
+			<div class='tablehelp'>
+				<div class='helpcont'>
+					<div class='helpmenu'>
+						<div class='closehelp' onclick="document.getElementById('settings').style.display = 'none'">Close</div>
+						<center>
+							<h1>Settings</h1>
+						</center>
+						<div class='helptext'>
+							<div class='helpdiv' style='padding:0;'>
+								<div class='title' style='margin-top:-13px;margin-left:10px;'>Size:</div>
+								<div class='sizeselect'>
+									<!--758
+									121-->
+								</div>
+								<div class='helptab'>
+									<!--Dimensions: <input id='dimensions' type='number' value='2' min='2' max='5' onchange='changedimensions()' onkeyup='changedimensions()'/><br />-->
+									<div id='size'>
+										Width: &nbsp;&nbsp;<input class='sizeinput' id='d0' type='number' value='2' min='2'/>
+										<button class='tileAction right' onclick='updateDimensions()'>Update maze size</button><br />
+										Height: &nbsp;<input class='sizeinput' id='d1' type='number' value='2' min='2'/>
+									</div>
+								</div>
+							</div>
+							<div class='helpdiv'>
+								<div class='title'>Maze generation algorithm:</div>
+								<div class='helptab'>
+									<input type='radio' name='gen' value='0' onclick='gen(0)' checked='yes' />Recursive depth-first search<br />
+									<input type='radio' name='gen' value='1' onclick='gen(1)' />Subdivision
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

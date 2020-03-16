@@ -1,0 +1,107 @@
+<html>
+	<head>
+		<title>Feet per second to kilometers per hour</title>
+		<style>
+			input
+			{
+				padding:5px;
+				font-size:16px;
+				border: 1px solid #ABCDEF;
+				border-radius:5px;
+				-moz-box-shadow: 2px 2px 5px rgba(0,0,0,0.4) inset;
+				-webkit-box-shadow: 2px 2px 5px rgba(0,0,0,0.4) inset;
+				box-shadow: 2px 2px 5px rgba(0,0,0,0.4) inset;
+			}
+			
+			.inputunit
+			{
+				font-size:16px;
+				color:gray;
+				display:inline;
+			}
+			
+			body
+			{
+				background-color: #ABCDEF;
+			}
+		</style>
+		<script type='text/javascript'>
+			var ft;
+			var km;
+			var sec;
+			//var h;
+			function load()
+			{
+				ft = document.getElementById("ft");
+				km = document.getElementById("km");
+				sec = document.getElementById("sec");
+				//h = document.getElementById("h");
+			}
+			function calca()
+			{
+				var feet = + ft.value;
+				var seconds = + sec.value;
+				feet /= 3280.84;
+				seconds /= 3600;
+				var v = reduce(feet, seconds);
+				var s = "s";
+				if (v[0] == 1)
+				{
+					s = "";
+				}
+				var o = v[0] + " kilometer" + s;
+				if (o == "NaN kilometers")
+				{
+					o = "Not a Number";
+				}
+				km.value = o;
+				//h.value = v[1];
+			}
+			
+			function calcb()
+			{
+				var feet = + km.value;
+				var seconds = + sec.value;
+				feet *= 3280.84;
+				seconds *= 3600;
+				var v = reduce(feet, seconds);
+				ft.value = v[0];
+				sec.value = v[1];
+			}
+			
+			function reduce(numerator,denominator)
+			{
+				//var f = new Fraction(numerator/denominator);
+				return [numerator / denominator, denominator];
+			}
+		</script>
+	</head>
+	
+	<body onload="load()">
+		<table>
+			<tbody>
+				<tr>
+					<td style='border-bottom: 1px solid black;'>
+						<input onchange='calca()' placeholder='Feet' type='text' id='ft' value='0'/>
+						<div class='inputunit'>(Feet)</div>
+					</td>
+					<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+					<td style='border-bottom: 1px solid black;'>
+						<input placeholder='Kilometers' type='text' id='km' value='Infinity kilometers'style='width:288px;' />
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input onchange='calca()' placeholder='Seconds' type='text' id='sec' value='0'/>
+						<div class='inputunit'>(Sec)</div>
+					</td>
+					<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+					<td>
+						<!--<input onchange='calcb()' placeholder='Hours' type='text' id='h' value='Hour'/>-->
+						<div style='text-align:center;width:288px;display:block;font-size:18px;' class='inputunit'>Hour</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</body>
+</html>

@@ -1,0 +1,153 @@
+<html>
+	<head>
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Gafata|Open+Sans+Condensed:300&amp;subset=latin-ext" rel="stylesheet" type="text/css">
+		<title>Babylonian square roots</title>
+		<style>
+			.iter
+			{
+				padding-left:25px;
+			}
+			tr.calc:hover
+			{
+				background-color: rgba(255, 255, 255, 0.3);
+			}
+			.calcshow > td
+			{
+				padding: 0;
+				margin: 0;
+				
+				-webkit-box-shadow: inset 0 10px 10px -10px #000000, inset 0 -10px 10px -10px #000000;;
+				-moz-box-shadow: inset 0 10px 10px -10px #000000, inset 0 -10px 10px -10px #000000;;
+				-ms-box-shadow: inset 0 10px 10px -10px #000000, inset 0 -10px 10px -10px #000000;;
+				-o-box-shadow: inset 0 10px 10px -10px #000000, inset 0 -10px 10px -10px #000000;;
+				box-shadow: inset 0 10px 10px -10px #000000, inset 0 -10px 10px -10px #000000;;
+			}
+			.calcshow
+			{
+				background-color: rgba(255, 255, 255, 0.7);
+				overflow: hidden;
+				padding: 0;
+				margin: 0;
+				height: 0px;
+				-webkit-transition: height 0.5s ease;
+				-moz-transition: height 0.5s ease;
+				-ms-transition: height 0.5s ease;
+				-o-transition: height 0.5s ease;
+				transition: height 0.5s ease;
+			}
+			
+			.calcshow span
+			{
+				-webkit-transition: height 0.5s ease;
+				-moz-transition: height 0.5s ease;
+				-ms-transition: height 0.5s ease;
+				-o-transition: height 0.5s ease;
+				transition: height 0.5s ease;
+				overflow: hidden;
+				display: block;
+				font-weight: normal;
+				height: 0px;
+			}
+			
+			.calcshow[isClickedOn=yes], .calcshow[isClickedOn=yes] span
+			{
+				height: 100px;
+			}
+		</style>
+		<script type="text/javascript">
+			var num = 0;
+			var last = -1;
+			var it = 0;
+			function projeight(x, orig)
+			{
+				par = document.getElementById("tbody1");
+				
+				var kidTD1 = document.createElement("td");
+				if (it == 0)
+					kidTD1.innerHTML = "<span>a<sub>" + it + "</sub> = " + x + "</span>";
+				else
+					kidTD1.innerHTML = "<span>a<sub>" + it + "</sub> = <table style='display:inline-table;height:100%;font-size:30;position:relative;bottom:10px;' cellspacing='0'><tbody><tr><td style='border-bottom: solid 1px black;'>1</td></tr><tr><td>2</td></tr></tbody></table>(" + last + " + <table style='display:inline-table;height:100%;font-size:30;position:relative;bottom:10px;' cellspacing='0'><tbody><tr><td style='border-bottom: solid 1px black;'>" + orig + "</td></tr><tr><td>" + last + "</td></tr></tbody></table>)</span>";
+				kidTD1.className = "calcshow2";
+				
+				var kidTR2 = document.createElement("tr");
+				kidTR2.id = "kidTR" + it;
+				kidTR2.className = "calcshow";
+				kidTR2.appendChild(document.createElement("td"));
+				kidTR2.appendChild(kidTD1);
+				kidTR2.setAttribute("isClickedOn", "no");
+				
+				var kidTR = document.createElement("tr");
+				kidTR.className = "calc";
+				var elid = "kidTR" + it;
+				kidTR.onclick = function(e)
+				{
+					var theElement = document.getElementById(elid);
+					if (theElement.getAttribute("isClickedOn") != "yes")
+					{
+						var elements = document.getElementsByClassName("calcshow");
+						for (var i = 0; i < elements.length; i++)
+						{
+							elements[i].setAttribute("isClickedOn", "no");
+						}
+						theElement.setAttribute("isClickedOn", "yes");
+					}
+				}
+				
+				var kidIt = document.createElement("td");
+				kidIt.innerHTML = "a<sub>" + it + "</sub>:";
+				kidIt.className = "iter";
+				kidEst = document.createElement("td");
+				kidEst.innerHTML = "" + x;
+				kidTR.appendChild(kidIt);
+				kidTR.appendChild(kidEst);
+				par.appendChild(kidTR);
+				par.appendChild(kidTR2);
+
+				par.insertBefore(kidTR2, par.firstChild);
+				par.insertBefore(kidTR, par.firstChild);
+				if ((num + "") != ("" + x) && last != x)
+				{
+					it++;
+					last = x;
+					var y = 0.5 * (x + orig/x);
+					setTimeout("projeight(" + y + ", " + orig + ")", 10);
+				} else
+				{
+					var elements = document.getElementsByClassName("calcshow");
+					elements[elements.length-1].setAttribute("isClickedOn", "yes");
+				}
+			}
+			
+			function begin()
+			{
+				it = 0;
+				document.getElementById("tbody1").innerHTML = "";
+				
+				var orignum = document.getElementById("num1").value * 1;
+				var guess = document.getElementById("num2").value * 1;
+				num = Math.sqrt(orignum);
+				last = guess + 1;
+				projeight(guess, orignum);
+			}
+		</script>
+	</head>
+	<body style='margin:0px;overflow:hidden;height:100%;'>
+		<table cellspacing="25" style="position:relative; z-index:2; webkit-box-shadow: 0 0 7px rgba(0,0,0,0.7); moz-box-shadow: 0 0 7px rgba(0,0,0,0.7); ms-box-shadow: 0 0 7px rgba(0,0,0,0.7); o-box-shadow: 0 0 7px rgba(0,0,0,0.7); box-shadow: 0 0 7px rgba(0,0,0,0.7); width:100%; background-color:#99EE99;font-family:'Open Sans Condensed';font-size:25;font-weight: bolder;">
+			<tbody>
+				<td>Number to find square root of:<input type='number' id='num1' /></td>
+				<td>Closest guess to the square root:<input type='number' id='num2' /></td>
+				<td><button onclick='begin()'>Estimate</button></td>
+			</tbody>
+		</table>
+		<div style='height:calc(100% - 87px);width:100%;overflow-x:hidden;overflow-y:scroll;background-color:#9999EE;'>
+			<table cellspacing="0" style="border-collapse:separate;border-spacing:0px!important;margin:25px;margin-left:0px;margin-top:5px;width:100%;background-color:#9999EE;font-family:'Open Sans Condensed';font-size:50;font-weight: bolder;">
+				<thead>
+					<td style='padding-left:25px;text-decoration:underline;'>Repetition:</td>
+					<td style='text-decoration:underline;'>Estimate:</td>
+				</thead>
+				<tbody id='tbody1'>
+				</tbody>
+			</table>
+		</div>
+	</body>
+</html>
